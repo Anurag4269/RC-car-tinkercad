@@ -14,8 +14,12 @@ Servo steering;
 
 int headlight=4;
 int leftlight=13;
+bool leftblink=false;
 int rightlight =7;
+bool rightblink=false;
 int buzzpin=2;
+bool goforward=false;
+bool gobackward=false;
 
 void setup()
 {
@@ -30,7 +34,6 @@ void setup()
 
 void loop()
 {
-
   //ultrasonicsensor
   digitalWrite(trigpin, LOW);
   delayMicroseconds(10);
@@ -48,9 +51,46 @@ void loop()
     digitalWrite(rightlight, LOW);
   }
   
+  //indicator
+   if(leftblink==true && rightblink==false) 
+        {
+          digitalWrite(leftlight, HIGH);
+          delay(500);
+          digitalWrite(leftlight, LOW);
+          delay(500);
+         }
+   else if(rightblink)
+   {
+          digitalWrite(rightlight, HIGH);
+          delay(500);
+          digitalWrite(rightlight, LOW);
+          delay(500);
+    }
+   else
+       {
+        digitalWrite(leftlight, LOW);
+        digitalWrite(rightlight, LOW);
+       } 
+  
+  //accelerate or decelerate
+  if(goforward==true && gobackward==false)
+  {
+       digitalWrite(in1,HIGH);
+       digitalWrite(in2,LOW);
+  }
+  else if(goforward==false && gobackward==true)
+  {
+    digitalWrite(in1,LOW);
+       digitalWrite(in2,HIGH);
+  }
+  else {
+       digitalWrite(in1,LOW);
+        digitalWrite(in2,LOW);
+  }
   
   //IR
-  while(rc.decode(&sig)==0){}
+  delay(50);
+  Serial.println(sig.value);
   if (rc.decode(&sig)) {
     switch (sig.value) {
       case 0xFD00FF: // press power headlight on
@@ -59,28 +99,19 @@ void loop()
       case 0xFD08F7://press 1 headlight off
         digitalWrite(headlight, LOW);
         break;
-      
-      case 0xFDB07F://Forward
-        digitalWrite(in1,HIGH);
-        digitalWrite(in2,LOW);
+      case 0xFD042F:
+      goforward= !goforward;
+       break;
+      case 0xFD906F: //backward
+        gobackward=!gobackward;
         break;
-      case 0xFD906F: //Backward
-        digitalWrite(in1,LOW);
-        digitalWrite(in2,HIGH);
-        break;
-      case 0xFD20DF: // left 
+      case 0xFFFFFFFF: //left
         steering.write(45);
-        digitalWrite(leftlight,HIGH);
-        delay(500);
-        digitalWrite(leftlight,LOW);
-        delay(500);
+        leftblink = !leftblink;
         break;
-      case 0xFD609F: // right 
+      case 0xFD609F://right
         steering.write(135);
-        digitalWrite(rightlight,HIGH);
-        delay(500);
-        digitalWrite(rightlight,LOW);
-        delay(500);
+        rightblink=!rightblink;
         break;
       case 0xFDA05F: // horn 
         digitalWrite(buzzpin, HIGH);
@@ -91,10 +122,8 @@ void loop()
         delay(150);
         digitalWrite(buzzpin, LOW);
         break;
+      default: 
+        steering.write(0);
     }
-
-  
-  rc.resume();
-  
-  }
+  } rc.resume();
 }
